@@ -59,4 +59,4 @@ Memuat semua data kontak yang tersimpan di database SQLite.
 
 ## Demo
 
-![Screen Recording 2024-11-24 133051](https://github.com/user-attachments/assets/f23a2452-73af-458e-b186-0199e22d71a7)
+![Screen Recording 2024-11-24 144520](https://github.com/user-attachments/assets/7da7ab6c-75e6-4669-93ae-53e7af33a371)
