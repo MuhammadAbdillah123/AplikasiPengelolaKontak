@@ -1,10 +1,13 @@
 
+import java.io.File;
+import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 import javax.swing.JTextField;
 import javax.swing.table.DefaultTableModel;
@@ -223,7 +226,72 @@ public class Latihan3 extends javax.swing.JFrame {
         jButton4.addActionListener(e -> deleteKontak());
         jButton1.addActionListener(e -> searchKontak());
     }
+    
+    private void saveTableToCSV() {
+    System.out.println("Memulai metode saveTableToCSV"); // Debug awal
+    
+    // Membuka dialog untuk memilih lokasi penyimpanan file CSV
+    JFileChooser fileChooser = new JFileChooser();
+    fileChooser.setDialogTitle("Pilih lokasi untuk menyimpan file CSV");
+    fileChooser.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter("CSV Files", "csv"));
 
+    int userSelection = fileChooser.showSaveDialog(null); // Ganti 'this' dengan 'null' agar dialog muncul
+    System.out.println("Dialog file chooser muncul");
+
+    if (userSelection == JFileChooser.APPROVE_OPTION) {
+        File fileToSave = fileChooser.getSelectedFile();
+        System.out.println("User memilih file: " + fileToSave.getAbsolutePath());
+
+        // Tambahkan ekstensi .csv jika tidak ada
+        if (!fileToSave.getName().endsWith(".csv")) {
+            fileToSave = new File(fileToSave.getAbsolutePath() + ".csv");
+            System.out.println("Ekstensi .csv ditambahkan: " + fileToSave.getAbsolutePath());
+        }
+
+        try (PrintWriter writer = new PrintWriter(fileToSave)) {
+            javax.swing.table.TableModel model = jTable1.getModel();
+            int rowCount = model.getRowCount();
+            int colCount = model.getColumnCount();
+
+            System.out.println("Jumlah baris: " + rowCount + ", Jumlah kolom: " + colCount);
+
+            // Tulis header tabel
+            for (int col = 0; col < colCount; col++) {
+                writer.print(model.getColumnName(col)); // Menulis nama kolom
+                if (col < colCount - 1) {
+                    writer.print(","); // Tambahkan koma jika bukan kolom terakhir
+                }
+            }
+            writer.println(); // Pindah ke baris baru setelah header
+
+            // Tulis data tabel
+            for (int row = 0; row < rowCount; row++) {
+                for (int col = 0; col < colCount; col++) {
+                    Object value = model.getValueAt(row, col);
+                    writer.print(value != null ? value.toString() : ""); // Null-safe
+                    if (col < colCount - 1) {
+                        writer.print(","); // Tambahkan koma jika bukan kolom terakhir
+                    }
+                }
+                writer.println(); // Pindah ke baris baru setelah setiap baris data
+            }
+
+            System.out.println("Data tabel berhasil ditulis ke file CSV");
+            javax.swing.JOptionPane.showMessageDialog(
+                null,
+                "File CSV berhasil disimpan ke " + fileToSave.getAbsolutePath()
+            );
+        } catch (Exception e) {
+            e.printStackTrace();
+            javax.swing.JOptionPane.showMessageDialog(
+                null,
+                "Gagal menyimpan file CSV: " + e.getMessage()
+            );
+        }
+    } else {
+        System.out.println("User membatalkan penyimpanan");
+    }
+    }
 
     /**
      * This method is called from within the constructor to initialize the form.
@@ -249,6 +317,7 @@ public class Latihan3 extends javax.swing.JFrame {
         jButton2 = new javax.swing.JButton();
         jButton3 = new javax.swing.JButton();
         jButton4 = new javax.swing.JButton();
+        jButton5 = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
@@ -286,6 +355,13 @@ public class Latihan3 extends javax.swing.JFrame {
 
         jButton4.setText("Hapus");
 
+        jButton5.setText("Simpan");
+        jButton5.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton5ActionPerformed(evt);
+            }
+        });
+
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
         jPanel1.setLayout(jPanel1Layout);
         jPanel1Layout.setHorizontalGroup(
@@ -316,14 +392,15 @@ public class Latihan3 extends javax.swing.JFrame {
                         .addGap(82, 82, 82)
                         .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                             .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(jTextField3, javax.swing.GroupLayout.PREFERRED_SIZE, 280, javax.swing.GroupLayout.PREFERRED_SIZE)
                             .addGroup(jPanel1Layout.createSequentialGroup()
-                                .addGap(65, 65, 65)
                                 .addComponent(jButton2)
-                                .addGap(54, 54, 54)
+                                .addGap(51, 51, 51)
                                 .addComponent(jButton3)
-                                .addGap(49, 49, 49)
-                                .addComponent(jButton4))
-                            .addComponent(jTextField3, javax.swing.GroupLayout.PREFERRED_SIZE, 280, javax.swing.GroupLayout.PREFERRED_SIZE))))
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                .addComponent(jButton4)
+                                .addGap(54, 54, 54)
+                                .addComponent(jButton5)))))
                 .addContainerGap(110, Short.MAX_VALUE))
         );
         jPanel1Layout.setVerticalGroup(
@@ -353,7 +430,8 @@ public class Latihan3 extends javax.swing.JFrame {
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jButton2)
                     .addComponent(jButton3)
-                    .addComponent(jButton4))
+                    .addComponent(jButton4)
+                    .addComponent(jButton5))
                 .addContainerGap(61, Short.MAX_VALUE))
         );
 
@@ -376,6 +454,10 @@ public class Latihan3 extends javax.swing.JFrame {
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
+
+    private void jButton5ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton5ActionPerformed
+        saveTableToCSV();
+    }//GEN-LAST:event_jButton5ActionPerformed
 
     /**
      * @param args the command line arguments
@@ -417,6 +499,7 @@ public class Latihan3 extends javax.swing.JFrame {
     private javax.swing.JButton jButton2;
     private javax.swing.JButton jButton3;
     private javax.swing.JButton jButton4;
+    private javax.swing.JButton jButton5;
     private javax.swing.JComboBox<String> jComboBox1;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
