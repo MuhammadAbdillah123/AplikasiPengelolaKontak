@@ -1,3 +1,18 @@
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import javax.swing.JOptionPane;
+import javax.swing.JTextField;
+import javax.swing.table.DefaultTableModel;
+import javax.swing.text.AbstractDocument;
+import javax.swing.text.AttributeSet;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.DocumentFilter;
+
 /*
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/GUIForms/JFrame.java to edit this template
@@ -8,13 +23,207 @@
  * @author DELL
  */
 public class Latihan3 extends javax.swing.JFrame {
-
+    
+    private Connection conn;
+    private DefaultTableModel model;
     /**
      * Creates new form Latihan3
      */
     public Latihan3() {
         initComponents();
+        model = new DefaultTableModel(new Object[]{"ID", "Nama", "Nomor Telepon", "Kategori"}, 0);
+        jTable1.setModel(model); // Menambahkan model ke tabel
+        connectToDatabase();
+        createKontakTable();
+        initActionListeners();
+        loadKontak();
+        
+        // Batasi input hanya angka pada jTextField2
+        restrictNumericInput(jTextField2);
     }
+    
+    private void restrictNumericInput(JTextField textField) {
+    ((AbstractDocument) textField.getDocument()).setDocumentFilter(new DocumentFilter() {
+        @Override
+        public void insertString(FilterBypass fb, int offset, String string, AttributeSet attr) throws BadLocationException {
+            if (string.matches("\\d+")) { // Hanya angka yang diizinkan
+                super.insertString(fb, offset, string, attr);
+            }
+        }
+
+        @Override
+        public void replace(FilterBypass fb, int offset, int length, String string, AttributeSet attr) throws BadLocationException {
+            if (string.matches("\\d+") || string.isEmpty()) { // Hanya angka yang diizinkan
+                super.replace(fb, offset, length, string, attr);
+            }
+        }
+
+        @Override
+        public void remove(FilterBypass fb, int offset, int length) throws BadLocationException {
+            super.remove(fb, offset, length); // Menghapus karakter diizinkan
+        }
+    });
+}
+    
+    private void connectToDatabase() {
+        try {
+            conn = DriverManager.getConnection("jdbc:sqlite:kontak.db");
+            System.out.println("Koneksi ke database berhasil!");
+        } catch (SQLException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Gagal terkoneksi ke database: " + e.getMessage());
+        }
+    }
+    
+     private void createKontakTable() {
+        if (conn == null) {
+            System.err.println("Koneksi ke database belum berhasil!");
+            return;
+        }
+
+        String createTableSQL = "CREATE TABLE IF NOT EXISTS kontak ("
+                + "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                + "nama TEXT NOT NULL, "
+                + "nomor_telepon TEXT NOT NULL, "
+                + "kategori TEXT NOT NULL)";
+        try (Statement stmt = conn.createStatement()) {
+            stmt.execute(createTableSQL);
+            System.out.println("Tabel kontak berhasil dibuat atau sudah ada.");
+        } catch (SQLException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Gagal membuat tabel kontak: " + e.getMessage());
+        }
+    }
+    
+    private void addKontak() {
+    String nama = jTextField1.getText();
+    String nomorTelepon = jTextField2.getText();
+    String kategori = (String) jComboBox1.getSelectedItem();
+
+    // Validasi input nama
+    if (nama.isEmpty() || nomorTelepon.isEmpty()) {
+        JOptionPane.showMessageDialog(this, "Nama dan Nomor Telepon tidak boleh kosong");
+        return;
+    }
+
+    // Validasi nomor telepon (hanya angka dan panjang antara 10-15 digit)
+    if (!nomorTelepon.matches("\\d+")) {
+        JOptionPane.showMessageDialog(this, "Nomor Telepon hanya boleh berisi angka");
+        return;
+    }
+    if (nomorTelepon.length() < 10 || nomorTelepon.length() > 15) {
+        JOptionPane.showMessageDialog(this, "Nomor Telepon harus memiliki panjang antara 10 hingga 15 digit");
+        return;
+    }
+
+    try {
+        String sql = "INSERT INTO kontak (nama, nomor_telepon, kategori) VALUES (?, ?, ?)";
+        PreparedStatement stmt = conn.prepareStatement(sql);
+        stmt.setString(1, nama);
+        stmt.setString(2, nomorTelepon);
+        stmt.setString(3, kategori);
+        stmt.executeUpdate();
+        JOptionPane.showMessageDialog(this, "Kontak berhasil ditambahkan");
+        loadKontak();
+    } catch (SQLException e) {
+        e.printStackTrace();
+        JOptionPane.showMessageDialog(this, "Gagal menambah kontak");
+    }
+}
+
+    
+     private void editKontak() {
+        int selectedRow = jTable1.getSelectedRow();
+        if (selectedRow != -1) {
+            int id = (int) jTable1.getValueAt(selectedRow, 0);
+            String nama = jTextField1.getText();
+            String nomorTelepon = jTextField2.getText();
+            String kategori = (String) jComboBox1.getSelectedItem();
+
+            String sql = "UPDATE kontak SET nama = ?, nomor_telepon = ?, kategori = ? WHERE id = ?";
+            try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+                stmt.setString(1, nama);
+                stmt.setString(2, nomorTelepon);
+                stmt.setString(3, kategori);
+                stmt.setInt(4, id);
+                stmt.executeUpdate();
+                JOptionPane.showMessageDialog(this, "Kontak berhasil diperbarui");
+                loadKontak();
+            } catch (SQLException e) {
+                e.printStackTrace();
+                JOptionPane.showMessageDialog(this, "Gagal mengedit kontak: " + e.getMessage());
+            }
+        } else {
+            JOptionPane.showMessageDialog(this, "Pilih kontak yang ingin diubah.");
+        }
+    }
+    
+    private void deleteKontak() {
+        int selectedRow = jTable1.getSelectedRow();
+        if (selectedRow != -1) {
+            int id = (int) jTable1.getValueAt(selectedRow, 0);
+
+            String sql = "DELETE FROM kontak WHERE id = ?";
+            try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+                stmt.setInt(1, id);
+                stmt.executeUpdate();
+                JOptionPane.showMessageDialog(this, "Kontak berhasil dihapus");
+                loadKontak();
+            } catch (SQLException e) {
+                e.printStackTrace();
+                JOptionPane.showMessageDialog(this, "Gagal menghapus kontak: " + e.getMessage());
+            }
+        } else {
+            JOptionPane.showMessageDialog(this, "Pilih kontak yang ingin dihapus.");
+        }
+    }
+    
+    private void searchKontak() {
+        String query = JOptionPane.showInputDialog(this, "Masukkan nama atau nomor telepon:");
+        if (query != null && !query.isEmpty()) {
+            String sql = "SELECT * FROM kontak WHERE nama LIKE ? OR nomor_telepon LIKE ?";
+            try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+                stmt.setString(1, "%" + query + "%");
+                stmt.setString(2, "%" + query + "%");
+                ResultSet rs = stmt.executeQuery();
+
+                model.setRowCount(0);
+                while (rs.next()) {
+                    model.addRow(new Object[]{
+                            rs.getInt("id"), rs.getString("nama"), rs.getString("nomor_telepon"), rs.getString("kategori")
+                    });
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+                JOptionPane.showMessageDialog(this, "Gagal mencari kontak: " + e.getMessage());
+            }
+        }
+    }
+    
+    private void loadKontak() {
+        String sql = "SELECT * FROM kontak";
+        try (PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+
+            model.setRowCount(0);
+            while (rs.next()) {
+                model.addRow(new Object[]{
+                        rs.getInt("id"), rs.getString("nama"), rs.getString("nomor_telepon"), rs.getString("kategori")
+                });
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Gagal memuat kontak: " + e.getMessage());
+        }
+    }
+    
+    private void initActionListeners() {
+        jButton2.addActionListener(e -> addKontak());
+        jButton3.addActionListener(e -> editKontak());
+        jButton4.addActionListener(e -> deleteKontak());
+        jButton1.addActionListener(e -> searchKontak());
+    }
+
 
     /**
      * This method is called from within the constructor to initialize the form.
